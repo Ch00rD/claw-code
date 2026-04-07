@@ -8,6 +8,8 @@ use crate::error::ApiError;
 use crate::types::{MessageRequest, MessageResponse};
 
 pub mod anthropic;
+pub mod credential;
+pub mod credential_resolver;
 pub mod openai_compat;
 
 #[allow(dead_code)]
@@ -33,6 +35,8 @@ pub enum ProviderKind {
     Anthropic,
     Xai,
     OpenAi,
+    Ollama,
+    Generic,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -135,31 +139,16 @@ const MODEL_REGISTRY: &[(&str, ProviderMetadata)] = &[
 
 #[must_use]
 pub fn resolve_model_alias(model: &str) -> String {
-    let trimmed = model.trim();
-    let lower = trimmed.to_ascii_lowercase();
-    MODEL_REGISTRY
-        .iter()
-        .find_map(|(alias, metadata)| {
-            (*alias == lower).then_some(match metadata.provider {
-                ProviderKind::Anthropic => match *alias {
-                    "opus" => "claude-opus-4-6",
-                    "sonnet" => "claude-sonnet-4-6",
-                    "haiku" => "claude-haiku-4-5-20251213",
-                    _ => trimmed,
-                },
-                ProviderKind::Xai => match *alias {
-                    "grok" | "grok-3" => "grok-3",
-                    "grok-mini" | "grok-3-mini" => "grok-3-mini",
-                    "grok-2" => "grok-2",
-                    _ => trimmed,
-                },
-                ProviderKind::OpenAi => match *alias {
-                    "kimi" => "kimi-k2.5",
-                    _ => trimmed,
-                },
-            })
-        })
-        .map_or_else(|| trimmed.to_string(), ToOwned::to_owned)
+    match model {
+        "opus"      => "claude-opus-4-6",
+        "sonnet"    => "claude-sonnet-4-6",
+        "haiku"     => "claude-haiku-4-5-20251001",
+        "grok"      => "grok-3",
+        "grok-mini" => "grok-3-mini",
+        "grok-2"    => "grok-2",
+        other       => other,
+    }
+    .to_string()
 }
 
 #[must_use]
@@ -221,8 +210,15 @@ pub fn metadata_for_model(model: &str) -> Option<ProviderMetadata> {
 
 #[must_use]
 pub fn detect_provider_kind(model: &str) -> ProviderKind {
-    if let Some(metadata) = metadata_for_model(model) {
-        return metadata.provider;
+    // Explicit LLM_PROVIDER env var wins over model-name heuristic
+    if let Ok(p) = std::env::var("LLM_PROVIDER") {
+        return match p.to_lowercase().as_str() {
+            "anthropic" | "claw" => ProviderKind::Anthropic,
+            "openai"             => ProviderKind::OpenAi,
+            "xai" | "grok"       => ProviderKind::Xai,
+            "ollama"             => ProviderKind::Ollama,
+            _                    => ProviderKind::Generic,
+        };
     }
     // When OPENAI_BASE_URL is set, the user explicitly configured an
     // OpenAI-compatible endpoint. Prefer it over the Anthropic fallback
@@ -239,6 +235,9 @@ pub fn detect_provider_kind(model: &str) -> ProviderKind {
     if openai_compat::has_api_key("OPENAI_API_KEY") {
         return ProviderKind::OpenAi;
     }
+    // Unknown model but LLM_BASE_URL set → generic compat endpoint
+    if std::env::var("LLM_BASE_URL").is_ok() { return ProviderKind::Generic; }
+    // Preserve existing XAI_API_KEY fallback
     if openai_compat::has_api_key("XAI_API_KEY") {
         return ProviderKind::Xai;
     }

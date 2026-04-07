@@ -28,7 +28,7 @@ const DEFAULT_MAX_RETRIES: u32 = 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OpenAiCompatConfig {
     pub provider_name: &'static str,
-    pub api_key_env: &'static str,
+    pub api_key_env: Option<&'static str>,
     pub base_url_env: &'static str,
     pub default_base_url: &'static str,
     /// Maximum request body size in bytes. Provider-specific limits:
@@ -52,7 +52,7 @@ impl OpenAiCompatConfig {
     pub const fn xai() -> Self {
         Self {
             provider_name: "xAI",
-            api_key_env: "XAI_API_KEY",
+            api_key_env: Some("XAI_API_KEY"),
             base_url_env: "XAI_BASE_URL",
             default_base_url: DEFAULT_XAI_BASE_URL,
             max_request_body_bytes: XAI_MAX_REQUEST_BODY_BYTES,
@@ -63,7 +63,7 @@ impl OpenAiCompatConfig {
     pub const fn openai() -> Self {
         Self {
             provider_name: "OpenAI",
-            api_key_env: "OPENAI_API_KEY",
+            api_key_env: Some("OPENAI_API_KEY"),
             base_url_env: "OPENAI_BASE_URL",
             default_base_url: DEFAULT_OPENAI_BASE_URL,
             max_request_body_bytes: OPENAI_MAX_REQUEST_BODY_BYTES,
@@ -130,11 +130,23 @@ impl OpenAiCompatClient {
     }
 
     pub fn from_env(config: OpenAiCompatConfig) -> Result<Self, ApiError> {
-        let Some(api_key) = read_env_non_empty(config.api_key_env)? else {
-            return Err(ApiError::missing_credentials(
-                config.provider_name,
-                config.credential_env_vars(),
-            ));
+        let api_key = match config.api_key_env {
+            None => {
+                // No auth required (e.g. Ollama); check LLM_API_KEY as optional override
+                read_env_non_empty("LLM_API_KEY")?.unwrap_or_default()
+            }
+            Some(env_var) => {
+                // Try provider-specific key, then generic LLM_API_KEY fallback
+                let key = read_env_non_empty(env_var)?
+                    .or(read_env_non_empty("LLM_API_KEY")?.filter(|k| !k.is_empty()));
+                let Some(k) = key else {
+                    return Err(ApiError::missing_credentials(
+                        config.provider_name,
+                        config.credential_env_vars(),
+                    ));
+                };
+                k
+            }
         };
         Ok(Self::new(api_key, config))
     }
@@ -1320,7 +1332,9 @@ pub fn has_api_key(key: &str) -> bool {
 
 #[must_use]
 pub fn read_base_url(config: OpenAiCompatConfig) -> String {
-    std::env::var(config.base_url_env).unwrap_or_else(|_| config.default_base_url.to_string())
+    std::env::var(config.base_url_env)
+        .or_else(|_| std::env::var("LLM_BASE_URL"))
+        .unwrap_or_else(|_| config.default_base_url.to_string())
 }
 
 fn chat_completions_endpoint(base_url: &str) -> String {

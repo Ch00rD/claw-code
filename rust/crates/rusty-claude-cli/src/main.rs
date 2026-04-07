@@ -265,7 +265,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             base_commit,
             reasoning_effort,
             allow_broad_cwd,
-        } => run_repl(
+        } => {
+            if let Some(p) = provider { std::env::set_var("LLM_PROVIDER", p); }
+            run_repl(
             model,
             allowed_tools,
             permission_mode,
@@ -398,6 +400,7 @@ impl CliOutputFormat {
 #[allow(clippy::too_many_lines)]
 fn parse_args(args: &[String]) -> Result<CliAction, String> {
     let mut model = DEFAULT_MODEL.to_string();
+    let mut provider: Option<String> = None;
     let mut output_format = CliOutputFormat::Text;
     let mut permission_mode_override = None;
     let mut wants_help = false;
@@ -451,7 +454,25 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 index += 2;
             }
             flag if flag.starts_with("--model=") => {
-                model = resolve_model_alias_with_config(&flag[8..]);
+                let raw = &flag[8..];
+                // Shorthand: --model ollama/qwen3-coder:480b-cloud
+                if let Some((p, m)) = raw.split_once('/') {
+                    provider = Some(p.to_lowercase());
+                    model = m.to_string();
+                } else {
+                    model = resolve_model_alias_with_config(raw);
+                }
+                index += 1;
+            }
+            "--provider" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "missing value for --provider".to_string())?;
+                provider = Some(value.to_lowercase());
+                index += 2;
+            }
+            flag if flag.starts_with("--provider=") => {
+                provider = Some(flag[11..].to_lowercase());
                 index += 1;
             }
             "--output-format" => {
@@ -1144,6 +1165,8 @@ fn provider_label(kind: ProviderKind) -> &'static str {
         ProviderKind::Anthropic => "anthropic",
         ProviderKind::Xai => "xai",
         ProviderKind::OpenAi => "openai",
+        ProviderKind::Ollama => "ollama",
+        ProviderKind::Generic => "generic",
     }
 }
 
@@ -3646,7 +3669,7 @@ impl LiveCli {
         allowed_tools: Option<AllowedToolSet>,
         permission_mode: PermissionMode,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let system_prompt = build_system_prompt()?;
+        let system_prompt = build_system_prompt_for_model(Some(&model))?;
         let session_state = new_cli_session()?;
         let session = create_managed_session_handle(&session_state.session_id)?;
         let runtime = build_runtime(
@@ -6171,11 +6194,16 @@ fn short_tool_id(id: &str) -> String {
 }
 
 fn build_system_prompt() -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    Ok(load_system_prompt(
+    build_system_prompt_for_model(None)
+}
+
+fn build_system_prompt_for_model(model: Option<&str>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    Ok(runtime::load_system_prompt_for_model(
         env::current_dir()?,
         DEFAULT_DATE,
         env::consts::OS,
         "unknown",
+        model,
     )?)
 }
 

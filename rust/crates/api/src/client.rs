@@ -11,6 +11,8 @@ pub enum ProviderClient {
     Anthropic(AnthropicClient),
     Xai(OpenAiCompatClient),
     OpenAi(OpenAiCompatClient),
+    Ollama(OpenAiCompatClient),
+    Generic(OpenAiCompatClient),
 }
 
 impl ProviderClient {
@@ -52,6 +54,8 @@ impl ProviderClient {
             Self::Anthropic(_) => ProviderKind::Anthropic,
             Self::Xai(_) => ProviderKind::Xai,
             Self::OpenAi(_) => ProviderKind::OpenAi,
+            Self::Ollama(_) => ProviderKind::Ollama,
+            Self::Generic(_) => ProviderKind::Generic,
         }
     }
 
@@ -59,7 +63,8 @@ impl ProviderClient {
     pub fn with_prompt_cache(self, prompt_cache: PromptCache) -> Self {
         match self {
             Self::Anthropic(client) => Self::Anthropic(client.with_prompt_cache(prompt_cache)),
-            other => other,
+            Self::Xai(c) | Self::OpenAi(c)
+            | Self::Ollama(c) | Self::Generic(c) => Self::Ollama(c.clone()),
         }
     }
 
@@ -67,7 +72,7 @@ impl ProviderClient {
     pub fn prompt_cache_stats(&self) -> Option<PromptCacheStats> {
         match self {
             Self::Anthropic(client) => client.prompt_cache_stats(),
-            Self::Xai(_) | Self::OpenAi(_) => None,
+            Self::Xai(_) | Self::OpenAi(_) | Self::Ollama(_) | Self::Generic(_) => None,
         }
     }
 
@@ -75,7 +80,7 @@ impl ProviderClient {
     pub fn take_last_prompt_cache_record(&self) -> Option<PromptCacheRecord> {
         match self {
             Self::Anthropic(client) => client.take_last_prompt_cache_record(),
-            Self::Xai(_) | Self::OpenAi(_) => None,
+            Self::Xai(_) | Self::OpenAi(_) | Self::Ollama(_) | Self::Generic(_) => None,
         }
     }
 
@@ -85,7 +90,8 @@ impl ProviderClient {
     ) -> Result<MessageResponse, ApiError> {
         match self {
             Self::Anthropic(client) => client.send_message(request).await,
-            Self::Xai(client) | Self::OpenAi(client) => client.send_message(request).await,
+            Self::Xai(client) | Self::OpenAi(client)
+            | Self::Ollama(client) | Self::Generic(client) => client.send_message(request).await,
         }
     }
 
@@ -98,7 +104,8 @@ impl ProviderClient {
                 .stream_message(request)
                 .await
                 .map(MessageStream::Anthropic),
-            Self::Xai(client) | Self::OpenAi(client) => client
+            Self::Xai(client) | Self::OpenAi(client)
+            | Self::Ollama(client) | Self::Generic(client) => client
                 .stream_message(request)
                 .await
                 .map(MessageStream::OpenAiCompat),
@@ -109,7 +116,7 @@ impl ProviderClient {
 #[derive(Debug)]
 pub enum MessageStream {
     Anthropic(anthropic::MessageStream),
-    OpenAiCompat(openai_compat::MessageStream),
+    OpenAiCompat(openai_compat::MessageStream),  // covers Xai, OpenAi, Ollama, Generic
 }
 
 impl MessageStream {
