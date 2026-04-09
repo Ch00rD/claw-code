@@ -217,13 +217,18 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } => resume_session(&session_path, &commands, output_format),
         CliAction::Status {
             model,
+            provider,
             permission_mode,
             output_format,
-        } => print_status_snapshot(&model, permission_mode, output_format)?,
+        } => {
+            if let Some(p) = provider { std::env::set_var("LLM_PROVIDER", p); }
+            print_status_snapshot(&model, permission_mode, output_format)?
+        }
         CliAction::Sandbox { output_format } => print_sandbox_status_snapshot(output_format)?,
         CliAction::Prompt {
             prompt,
             model,
+            provider,
             output_format,
             allowed_tools,
             permission_mode,
@@ -260,6 +265,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } => run_export(&session_reference, output_path.as_deref(), output_format)?,
         CliAction::Repl {
             model,
+            provider,
             allowed_tools,
             permission_mode,
             base_commit,
@@ -322,6 +328,7 @@ enum CliAction {
     },
     Status {
         model: String,
+        provider: Option<String>,
         permission_mode: PermissionMode,
         output_format: CliOutputFormat,
     },
@@ -331,6 +338,7 @@ enum CliAction {
     Prompt {
         prompt: String,
         model: String,
+        provider: Option<String>,
         output_format: CliOutputFormat,
         allowed_tools: Option<AllowedToolSet>,
         permission_mode: PermissionMode,
@@ -358,6 +366,7 @@ enum CliAction {
     },
     Repl {
         model: String,
+        provider: Option<String>,
         allowed_tools: Option<AllowedToolSet>,
         permission_mode: PermissionMode,
         base_commit: Option<String>,
@@ -640,6 +649,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
         }
         return Ok(CliAction::Repl {
             model,
+            provider: provider.clone(),
             allowed_tools,
             permission_mode,
             base_commit,
@@ -678,6 +688,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 SkillSlashDispatch::Invoke(prompt) => Ok(CliAction::Prompt {
                     prompt,
                     model,
+                    provider: provider.clone(),
                     output_format,
                     allowed_tools,
                     permission_mode,
@@ -705,6 +716,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
             Ok(CliAction::Prompt {
                 prompt,
                 model,
+                provider: provider.clone(),
                 output_format,
                 allowed_tools,
                 permission_mode,
@@ -728,6 +740,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
         _other => Ok(CliAction::Prompt {
             prompt: rest.join(" "),
             model,
+            provider: provider.clone(),
             output_format,
             allowed_tools,
             permission_mode,
@@ -773,6 +786,7 @@ fn parse_single_word_command_alias(
         "version" => Some(Ok(CliAction::Version { output_format })),
         "status" => Some(Ok(CliAction::Status {
             model: model.to_string(),
+            provider: None,
             permission_mode: permission_mode_override.unwrap_or_else(default_permission_mode),
             output_format,
         })),
@@ -884,6 +898,7 @@ fn parse_direct_slash_cli_action(
                 SkillSlashDispatch::Invoke(prompt) => Ok(CliAction::Prompt {
                     prompt,
                     model,
+                    provider: None,
                     output_format,
                     allowed_tools,
                     permission_mode,
@@ -3705,7 +3720,15 @@ impl LiveCli {
     fn startup_banner(&self) -> String {
         let cwd = env::current_dir().map_or_else(
             |_| "<unknown>".to_string(),
-            |path| path.display().to_string(),
+            |path| {
+                let s = path.display().to_string();
+                if let Ok(home) = std::env::var("HOME") {
+                    if s.starts_with(&home) {
+                        return format!("~{}", &s[home.len()..]);
+                    }
+                }
+                s
+            },
         );
         let status = status_context(None).ok();
         let git_branch = status
@@ -3720,6 +3743,8 @@ impl LiveCli {
             |_| self.session.path.display().to_string(),
             |path| path.display().to_string(),
         );
+        let provider_display = std::env::var("LLM_PROVIDER")
+            .unwrap_or_else(|_| "anthropic".to_string());
         format!(
             "\x1b[38;5;196m\
  ██████╗██╗      █████╗ ██╗    ██╗\n\
@@ -3728,6 +3753,7 @@ impl LiveCli {
 ██║     ██║     ██╔══██║██║███╗██║\n\
 ╚██████╗███████╗██║  ██║╚███╔███╔╝\n\
  ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝\x1b[0m \x1b[38;5;208mCode\x1b[0m 🦞\n\n\
+  \x1b[2mProvider\x1b[0m         {}\n\
   \x1b[2mModel\x1b[0m            {}\n\
   \x1b[2mPermissions\x1b[0m      {}\n\
   \x1b[2mBranch\x1b[0m           {}\n\
@@ -3736,6 +3762,7 @@ impl LiveCli {
   \x1b[2mSession\x1b[0m          {}\n\
   \x1b[2mAuto-save\x1b[0m        {}\n\n\
   Type \x1b[1m/help\x1b[0m for commands · \x1b[1m/status\x1b[0m for live context · \x1b[2m/resume latest\x1b[0m jumps back to the newest session · \x1b[1m/diff\x1b[0m then \x1b[1m/commit\x1b[0m to ship · \x1b[2mTab\x1b[0m for workflow completions · \x1b[2mShift+Enter\x1b[0m for newline",
+            provider_display,
             self.model,
             self.permission_mode.as_str(),
             git_branch,
