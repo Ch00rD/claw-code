@@ -93,7 +93,7 @@ impl OpenAiCompatConfig {
             provider_name: "Ollama",
             api_key_env: None,
             base_url_env: "OLLAMA_BASE_URL",
-            default_base_url: "http://localhost:11434",
+            default_base_url: "http://localhost:11434/v1",
         }
     }
 
@@ -103,7 +103,7 @@ impl OpenAiCompatConfig {
             provider_name: "Generic",
             api_key_env: Some("LLM_API_KEY"),
             base_url_env: "LLM_BASE_URL",
-            default_base_url: "http://localhost:11434",
+            default_base_url: "http://localhost:11434/v1",
         }
     }
 
