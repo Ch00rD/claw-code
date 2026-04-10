@@ -26,7 +26,7 @@ fn provider_client_reports_missing_xai_credentials_for_grok_models() {
             provider, env_vars, ..
         } => {
             assert_eq!(provider, "xAI");
-            assert_eq!(env_vars, &["XAI_API_KEY"]);
+            assert_eq!(env_vars, &["XAI_API_KEY", "LLM_API_KEY"]);
         }
         other => panic!("expected missing xAI credentials, got {other:?}"),
     }

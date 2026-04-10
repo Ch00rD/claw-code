@@ -216,6 +216,10 @@ pub fn detect_provider_kind(model: &str) -> ProviderKind {
     if model.starts_with("gpt") || model.starts_with("o1") || model.starts_with("o3") {
         return ProviderKind::OpenAi;
     }
+    // qwen/ and qwen- prefixes route to DashScope (OpenAI-compat)
+    if model.starts_with("qwen/") || model.starts_with("qwen-") {
+        return ProviderKind::OpenAi;
+    }
     // For unknown model names, LLM_PROVIDER env var is the explicit override
     if let Ok(p) = std::env::var("LLM_PROVIDER") {
         return match p.to_lowercase().as_str() {

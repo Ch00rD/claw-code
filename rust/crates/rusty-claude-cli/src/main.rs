@@ -8743,6 +8743,7 @@ mod tests {
             parse_args(&[]).expect("args should parse"),
             CliAction::Repl {
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 allowed_tools: None,
                 permission_mode: PermissionMode::DangerFullAccess,
                 base_commit: None,
@@ -8874,6 +8875,7 @@ mod tests {
             parse_args(&args).expect("args should parse"),
             CliAction::Prompt {
                 prompt: "hello world".to_string(),
+                provider: None,
                 model: DEFAULT_MODEL.to_string(),
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
@@ -8965,6 +8967,7 @@ mod tests {
             parse_args(&args).expect("args should parse"),
             CliAction::Prompt {
                 prompt: "explain this".to_string(),
+                provider: None,
                 model: "claude-opus".to_string(),
                 output_format: CliOutputFormat::Json,
                 allowed_tools: None,
@@ -8996,6 +8999,7 @@ mod tests {
             parsed,
             CliAction::Prompt {
                 prompt: "summarize this".to_string(),
+                provider: None,
                 model: DEFAULT_MODEL.to_string(),
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
@@ -9039,6 +9043,7 @@ mod tests {
             parse_args(&args).expect("args should parse"),
             CliAction::Prompt {
                 prompt: "explain this".to_string(),
+                provider: None,
                 model: "claude-opus-4-6".to_string(),
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
@@ -9121,6 +9126,7 @@ mod tests {
             parse_args(&args).expect("args should parse"),
             CliAction::Repl {
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 allowed_tools: None,
                 permission_mode: PermissionMode::ReadOnly,
                 base_commit: None,
@@ -9142,6 +9148,7 @@ mod tests {
             parsed,
             CliAction::Repl {
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 allowed_tools: None,
                 permission_mode: PermissionMode::DangerFullAccess,
                 base_commit: None,
@@ -9170,6 +9177,7 @@ mod tests {
             CliAction::Prompt {
                 prompt: "do the thing".to_string(),
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
                 permission_mode: PermissionMode::DangerFullAccess,
@@ -9194,6 +9202,7 @@ mod tests {
             parse_args(&args).expect("args should parse"),
             CliAction::Repl {
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 allowed_tools: Some(
                     ["glob_search", "read_file", "write_file"]
                         .into_iter()
@@ -9300,6 +9309,7 @@ mod tests {
             CliAction::Prompt {
                 prompt: "$help overview".to_string(),
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
                 permission_mode: crate::default_permission_mode(),
@@ -9417,6 +9427,7 @@ mod tests {
             parse_args(&["status".to_string()]).expect("status should parse"),
             CliAction::Status {
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 permission_mode: PermissionMode::DangerFullAccess,
                 output_format: CliOutputFormat::Text,
             }
@@ -9744,6 +9755,7 @@ mod tests {
             CliAction::Prompt {
                 prompt: "help me debug".to_string(),
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
                 permission_mode: crate::default_permission_mode(),
@@ -9812,6 +9824,7 @@ mod tests {
             CliAction::Prompt {
                 prompt: "$help overview".to_string(),
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
                 permission_mode: crate::default_permission_mode(),
@@ -9839,6 +9852,7 @@ mod tests {
             CliAction::Prompt {
                 prompt: "$test".to_string(),
                 model: DEFAULT_MODEL.to_string(),
+                provider: None,
                 output_format: CliOutputFormat::Text,
                 allowed_tools: None,
                 permission_mode: crate::default_permission_mode(),
