@@ -104,8 +104,19 @@ impl ProviderClient {
                 .stream_message(request)
                 .await
                 .map(MessageStream::Anthropic),
-            Self::Xai(client) | Self::OpenAi(client)
-            | Self::Ollama(client) | Self::Generic(client) => client
+            Self::Xai(client) => client
+                .stream_message(request)
+                .await
+                .map(MessageStream::OpenAiCompat),
+            Self::OpenAi(client) => client
+                .stream_message(request)
+                .await
+                .map(MessageStream::OpenAiCompat),
+            Self::Ollama(client) => client
+                .stream_message(request)
+                .await
+                .map(MessageStream::OpenAiCompat),
+            Self::Generic(client) => client
                 .stream_message(request)
                 .await
                 .map(MessageStream::OpenAiCompat),

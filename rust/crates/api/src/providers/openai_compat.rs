@@ -130,24 +130,20 @@ impl OpenAiCompatClient {
     }
 
     pub fn from_env(config: OpenAiCompatConfig) -> Result<Self, ApiError> {
-        let api_key = match config.api_key_env {
-            None => {
-                // No auth required (e.g. Ollama); check LLM_API_KEY as optional override
-                read_env_non_empty("LLM_API_KEY")?.unwrap_or_default()
-            }
-            Some(env_var) => {
-                // Try provider-specific key, then generic LLM_API_KEY fallback
-                let key = read_env_non_empty(env_var)?
-                    .or(read_env_non_empty("LLM_API_KEY")?.filter(|k| !k.is_empty()));
-                let Some(k) = key else {
-                    return Err(ApiError::missing_credentials(
-                        config.provider_name,
-                        config.credential_env_vars(),
-                    ));
-                };
-                k
-            }
+        use crate::providers::credential_resolver::{
+            resolve_credential_from_env, ProviderCredentialConfig,
         };
+        use crate::providers::ProviderKind;
+
+        let kind = match config.provider_name {
+            "xAI"    => ProviderKind::Xai,
+            "OpenAI" => ProviderKind::OpenAi,
+            "Ollama" => ProviderKind::Ollama,
+            _        => ProviderKind::Generic,
+        };
+        let cred_config = ProviderCredentialConfig::for_kind(kind);
+        let (credential, _source) = resolve_credential_from_env(&cred_config)?;
+        let api_key = credential.bearer_token().unwrap_or("").to_string();
         Ok(Self::new(api_key, config))
     }
 
