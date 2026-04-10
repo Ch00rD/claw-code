@@ -1,7 +1,7 @@
 # Provider Compatibility Matrix
 
 Branch: `Ch00rD/claw-code:main`
-Last updated: 2026-04-10
+Last updated: 2026-04-11
 
 ## How to run
 
@@ -20,7 +20,7 @@ claw --model "ollama/qwen3-coder:480b-cloud"
 
 | Provider | Model | Base URL | Key required | Command | Result | Notes |
 |---|---|---|---|---|---|---|
-| Ollama | qwen3-coder:480b-cloud | <http://localhost:11434/v1> | No | `claw --model ollama/qwen3-coder:480b-cloud` | ✅ Works | Direct, no LiteLLM needed |
+| Ollama | qwen3-coder:480b-cloud | <http://localhost:11434/v1> | No | `claw --model ollama/qwen3-coder:480b-cloud` | ✅ Works | Direct, no LiteLLM needed. Correctly self-identifies as qwen3-coder. |
 | Ollama | minimax-m2.7:cloud | <http://localhost:11434/v1> | No | `claw --model ollama/minimax-m2.7:cloud` | 🔲 Untested | |
 | Ollama | deepseek-coder:1.3b | <http://localhost:11434/v1> | No | `claw --model ollama/deepseek-coder:1.3b` | 🔲 Untested | |
 | OpenAI | gpt-4o | <https://api.openai.com/v1> | Yes (OPENAI_API_KEY) | `claw --model openai/gpt-4o` | 🔲 Untested | |
@@ -31,7 +31,7 @@ claw --model "ollama/qwen3-coder:480b-cloud"
 
 ## Known issues
 
-- Model self-identifies as Claude regardless of actual provider (training data issue, system prompt override planned)
+- ~~Model self-identifies as Claude regardless of actual provider~~ — Fixed: model identity injected into system prompt
 - `LLM_BASE_URL` or `ANTHROPIC_BASE_URL` must be unset for direct-to-provider routing to work
 - Tests must be run with `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_PROVIDER` unset
 
@@ -59,7 +59,7 @@ claw --model "ollama/qwen3-coder:480b-cloud"
 
 # Instructions on how to structure this file from upstream dev team of `claw-code`
 
-Yes — that is a good workflow, and the lowest-noise version is:
+The lowest-noise structure to report the results of our tests is:
 
 1. keep a single compatibility matrix doc in your branch/repo
 2. update that same file as you test more providers
@@ -86,7 +86,7 @@ Best shape for the matrix:
 
 If you want maximum maintainer usefulness, keep the entries repro-first, for example:
 
-```text
+```
 Provider: Ollama
 Model: qwen3-coder:480b-cloud
 Base URL: http://127.0.0.1:11434/v1
