@@ -10,3 +10,6 @@ archive/
 .claw/sessions/
 .clawhip/
 status-help.txt
+.DS_Store
+rust/.claw/
+*.DS_Store

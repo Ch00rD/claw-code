@@ -274,24 +274,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } => {
             if let Some(p) = provider { std::env::set_var("LLM_PROVIDER", p); }
             run_repl(
-<<<<<<< HEAD
             model,
             allowed_tools,
             permission_mode,
             base_commit,
             reasoning_effort,
             allow_broad_cwd,
-        )?,
-=======
-                model,
-                allowed_tools,
-                permission_mode,
-                base_commit,
-                reasoning_effort,
-                allow_broad_cwd,
-            )?
+        )?
         }
->>>>>>> 0e2003c (fix: restore --provider flag and provider/model shorthand after upstream sync)
         CliAction::HelpTopic(topic) => print_help_topic(topic),
         CliAction::Help { output_format } => print_help(output_format)?,
     }
@@ -481,10 +471,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
             }
             flag if flag.starts_with("--model=") => {
                 let raw = &flag[8..];
-<<<<<<< HEAD
                 // Shorthand: --model ollama/qwen3-coder:480b-cloud
-=======
->>>>>>> 0e2003c (fix: restore --provider flag and provider/model shorthand after upstream sync)
                 if let Some((p, m)) = raw.split_once('/') {
                     provider = Some(p.to_lowercase());
                     model = m.to_string();
@@ -3707,11 +3694,7 @@ impl LiveCli {
         permission_mode: PermissionMode,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let system_prompt = build_system_prompt_for_model(Some(&model))?;
-<<<<<<< HEAD
         let session_state = new_cli_session()?;
-=======
-        let session_state = Session::new();
->>>>>>> 5f71745 (feat: inject model identity into system prompt to prevent false Claude/Anthropic self-identification)
         let session = create_managed_session_handle(&session_state.session_id)?;
         let runtime = build_runtime(
             session_state.with_persistence_path(session.path.clone()),

@@ -1,5 +1,0 @@
-{"created_at_ms":1775716110755,"session_id":"session-1775716110755-0","type":"session_meta","updated_at_ms":1775716147292,"version":1}
-{"message":{"blocks":[{"text":"hey","type":"text"}],"role":"user"},"type":"message"}
-{"message":{"blocks":[{"text":"Hello! How can I help you today? If you have any questions about the codebase or need assistance with a software engineering task, feel free to ask.","type":"text"}],"role":"assistant","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":7422,"output_tokens":33}},"type":"message"}
-{"message":{"blocks":[{"text":"what model are you?","type":"text"}],"role":"user"},"type":"message"}
-{"message":{"blocks":[{"text":"I am Claude Opus 4.6, a large language model developed by Anthropic. I'm designed to be helpful, harmless, and honest in my interactions. How can I assist you with your software engineering tasks today?","type":"text"}],"role":"assistant","usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"input_tokens":7465,"output_tokens":47}},"type":"message"}

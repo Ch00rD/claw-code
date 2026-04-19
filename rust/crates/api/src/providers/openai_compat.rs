@@ -48,6 +48,8 @@ const GENERIC_ENV_VARS: &[&str] = &["LLM_API_KEY"];
 const XAI_MAX_REQUEST_BODY_BYTES: usize = 52_428_800; // 50MB
 const OPENAI_MAX_REQUEST_BODY_BYTES: usize = 104_857_600; // 100MB
 const DASHSCOPE_MAX_REQUEST_BODY_BYTES: usize = 6_291_456; // 6MB (observed limit in dogfood)
+const OLLAMA_MAX_REQUEST_BODY_BYTES: usize = OPENAI_MAX_REQUEST_BODY_BYTES;
+const GENERIC_MAX_REQUEST_BODY_BYTES: usize = OPENAI_MAX_REQUEST_BODY_BYTES;
 
 impl OpenAiCompatConfig {
     #[must_use]
@@ -94,6 +96,7 @@ impl OpenAiCompatConfig {
             api_key_env: None,
             base_url_env: "OLLAMA_BASE_URL",
             default_base_url: "http://localhost:11434/v1",
+            max_request_body_bytes: OLLAMA_MAX_REQUEST_BODY_BYTES,
         }
     }
 
@@ -104,6 +107,7 @@ impl OpenAiCompatConfig {
             api_key_env: Some("LLM_API_KEY"),
             base_url_env: "LLM_BASE_URL",
             default_base_url: "http://localhost:11434/v1",
+            max_request_body_bytes: GENERIC_MAX_REQUEST_BODY_BYTES,
         }
     }
 

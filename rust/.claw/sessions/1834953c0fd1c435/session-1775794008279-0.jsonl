@@ -1,3 +1,0 @@
-{"created_at_ms":1775794008279,"model":"ollama/qwen3-coder:480b-cloud","session_id":"session-1775794008279-0","type":"session_meta","updated_at_ms":1775794008279,"version":1}
-{"text":"sed -n '290,310p' ~/gh/claw-code/rust/crates/rusty-claude-cli/src/main.rs\ngrep -n \"LLM_PROVIDER\\|set_var\\|provider:\" ~/gh/claw-code/rust/crates/rusty-claude-cli/src/main.rs | head -20","timestamp_ms":1775794063344,"type":"prompt_history"}
-{"message":{"blocks":[{"text":"sed -n '290,310p' ~/gh/claw-code/rust/crates/rusty-claude-cli/src/main.rs\ngrep -n \"LLM_PROVIDER\\|set_var\\|provider:\" ~/gh/claw-code/rust/crates/rusty-claude-cli/src/main.rs | head -20","type":"text"}],"role":"user"},"type":"message"}
