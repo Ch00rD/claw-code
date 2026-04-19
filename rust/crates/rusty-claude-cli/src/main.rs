@@ -274,6 +274,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } => {
             if let Some(p) = provider { std::env::set_var("LLM_PROVIDER", p); }
             run_repl(
+<<<<<<< HEAD
             model,
             allowed_tools,
             permission_mode,
@@ -281,6 +282,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             reasoning_effort,
             allow_broad_cwd,
         )?,
+=======
+                model,
+                allowed_tools,
+                permission_mode,
+                base_commit,
+                reasoning_effort,
+                allow_broad_cwd,
+            )?
+        }
+>>>>>>> 0e2003c (fix: restore --provider flag and provider/model shorthand after upstream sync)
         CliAction::HelpTopic(topic) => print_help_topic(topic),
         CliAction::Help { output_format } => print_help(output_format)?,
     }
@@ -459,12 +470,21 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 let value = args
                     .get(index + 1)
                     .ok_or_else(|| "missing value for --model".to_string())?;
-                model = resolve_model_alias_with_config(value);
+                // Shorthand: --model ollama/qwen3-coder:480b-cloud
+                if let Some((p, m)) = value.split_once('/') {
+                    provider = Some(p.to_lowercase());
+                    model = m.to_string();
+                } else {
+                    model = resolve_model_alias_with_config(value);
+                }
                 index += 2;
             }
             flag if flag.starts_with("--model=") => {
                 let raw = &flag[8..];
+<<<<<<< HEAD
                 // Shorthand: --model ollama/qwen3-coder:480b-cloud
+=======
+>>>>>>> 0e2003c (fix: restore --provider flag and provider/model shorthand after upstream sync)
                 if let Some((p, m)) = raw.split_once('/') {
                     provider = Some(p.to_lowercase());
                     model = m.to_string();
@@ -560,6 +580,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 return Ok(CliAction::Prompt {
                     prompt,
                     model: resolve_model_alias_with_config(&model),
+                    provider: provider.clone(),
                     output_format,
                     allowed_tools: normalize_allowed_tools(&allowed_tool_values)?,
                     permission_mode: permission_mode_override
@@ -637,6 +658,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 return Ok(CliAction::Prompt {
                     model,
                     prompt: piped,
+                    provider: provider.clone(),
                     allowed_tools,
                     permission_mode,
                     output_format,
@@ -6858,12 +6880,13 @@ impl AnthropicRuntimeClient {
                     .with_prompt_cache(PromptCache::new(session_id));
                 ApiProviderClient::Anthropic(inner)
             }
-            ProviderKind::Xai | ProviderKind::OpenAi => {
+            ProviderKind::Xai | ProviderKind::OpenAi
+            | ProviderKind::Ollama | ProviderKind::Generic => {
                 // The api crate's `ProviderClient::from_model_with_anthropic_auth`
                 // with `None` for the anthropic auth routes via
                 // `detect_provider_kind` and builds an
                 // `OpenAiCompatClient::from_env` with the matching
-                // `OpenAiCompatConfig` (openai / xai / dashscope).
+                // `OpenAiCompatConfig` (openai / xai / dashscope / ollama / generic).
                 // That reads the correct API-key env var and BASE_URL
                 // override internally, so this one call covers OpenAI,
                 // OpenRouter, xAI, DashScope, Ollama, and any other

@@ -38,9 +38,11 @@ pub struct OpenAiCompatConfig {
     pub max_request_body_bytes: usize,
 }
 
-const XAI_ENV_VARS: &[&str] = &["XAI_API_KEY"];
-const OPENAI_ENV_VARS: &[&str] = &["OPENAI_API_KEY"];
-const DASHSCOPE_ENV_VARS: &[&str] = &["DASHSCOPE_API_KEY"];
+const XAI_ENV_VARS: &[&str] = &["XAI_API_KEY", "LLM_API_KEY"];
+const OPENAI_ENV_VARS: &[&str] = &["OPENAI_API_KEY", "LLM_API_KEY"];
+const DASHSCOPE_ENV_VARS: &[&str] = &["DASHSCOPE_API_KEY", "LLM_API_KEY"];
+const OLLAMA_ENV_VARS: &[&str] = &["LLM_API_KEY"];
+const GENERIC_ENV_VARS: &[&str] = &["LLM_API_KEY"];
 
 // Provider-specific request body size limits in bytes
 const XAI_MAX_REQUEST_BODY_BYTES: usize = 52_428_800; // 50MB
@@ -78,7 +80,7 @@ impl OpenAiCompatConfig {
     pub const fn dashscope() -> Self {
         Self {
             provider_name: "DashScope",
-            api_key_env: "DASHSCOPE_API_KEY",
+            api_key_env: Some("DASHSCOPE_API_KEY"),
             base_url_env: "DASHSCOPE_BASE_URL",
             default_base_url: DEFAULT_DASHSCOPE_BASE_URL,
             max_request_body_bytes: DASHSCOPE_MAX_REQUEST_BODY_BYTES,
@@ -86,12 +88,33 @@ impl OpenAiCompatConfig {
     }
 
     #[must_use]
+    pub const fn ollama() -> Self {
+        Self {
+            provider_name: "Ollama",
+            api_key_env: None,
+            base_url_env: "OLLAMA_BASE_URL",
+            default_base_url: "http://localhost:11434",
+        }
+    }
+
+    #[must_use]
+    pub const fn generic() -> Self {
+        Self {
+            provider_name: "Generic",
+            api_key_env: Some("LLM_API_KEY"),
+            base_url_env: "LLM_BASE_URL",
+            default_base_url: "http://localhost:11434",
+        }
+    }
+
+    #[must_use]
     pub fn credential_env_vars(self) -> &'static [&'static str] {
         match self.provider_name {
-            "xAI" => XAI_ENV_VARS,
-            "OpenAI" => OPENAI_ENV_VARS,
+            "xAI"       => XAI_ENV_VARS,
+            "OpenAI"    => OPENAI_ENV_VARS,
             "DashScope" => DASHSCOPE_ENV_VARS,
-            _ => &[],
+            "Ollama"    => OLLAMA_ENV_VARS,
+            _           => GENERIC_ENV_VARS,
         }
     }
 }

@@ -153,7 +153,7 @@ fn load_saved_oauth(provider_name: &str) -> Result<String, ApiError> {
     }
     let text = std::fs::read_to_string(&path).map_err(ApiError::Io)?;
     let parsed: serde_json::Value =
-        serde_json::from_str(&text).map_err(ApiError::Json)?;
+        serde_json::from_str(&text).map_err(ApiError::from)?;
     // Check expiry
     if let Some(expires_at) = parsed["expires_at"].as_u64() {
         let now = std::time::SystemTime::now()
