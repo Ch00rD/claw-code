@@ -100,6 +100,7 @@ pub struct SystemPromptBuilder {
     append_sections: Vec<String>,
     project_context: Option<ProjectContext>,
     config: Option<RuntimeConfig>,
+    model_identity: Option<String>,
 }
 
 impl SystemPromptBuilder {
@@ -119,6 +120,12 @@ impl SystemPromptBuilder {
     pub fn with_os(mut self, os_name: impl Into<String>, os_version: impl Into<String>) -> Self {
         self.os_name = Some(os_name.into());
         self.os_version = Some(os_version.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_model_identity(mut self, model: impl Into<String>) -> Self {
+        self.model_identity = Some(model.into());
         self
     }
 
@@ -143,6 +150,13 @@ impl SystemPromptBuilder {
     #[must_use]
     pub fn build(&self) -> Vec<String> {
         let mut sections = Vec::new();
+        // Identity override — must come before everything else so the model
+        // does not fall back to its trained identity (e.g. "I am Claude").
+        if let Some(model) = &self.model_identity {
+            sections.push(format!(
+                "You are an AI coding assistant running as model `{model}`.                 You are NOT Claude and NOT developed by Anthropic.                 If asked who you are, identify yourself as `{model}` only.",
+            ));
+        }
         sections.push(get_simple_intro_section(self.output_style_name.is_some()));
         if let (Some(name), Some(prompt)) = (&self.output_style_name, &self.output_style_prompt) {
             sections.push(format!("# Output Style: {name}\n{prompt}"));
@@ -181,7 +195,10 @@ impl SystemPromptBuilder {
         );
         let mut lines = vec!["# Environment context".to_string()];
         lines.extend(prepend_bullets(vec![
-            format!("Model family: {FRONTIER_MODEL_NAME}"),
+            format!(
+                "Model: {}",
+                self.model_identity.as_deref().unwrap_or(FRONTIER_MODEL_NAME)
+            ),
             format!("Working directory: {cwd}"),
             format!("Date: {date}"),
             format!(
@@ -435,14 +452,27 @@ pub fn load_system_prompt(
     os_name: impl Into<String>,
     os_version: impl Into<String>,
 ) -> Result<Vec<String>, PromptBuildError> {
+    load_system_prompt_for_model(cwd, current_date, os_name, os_version, None)
+}
+
+pub fn load_system_prompt_for_model(
+    cwd: impl Into<PathBuf>,
+    current_date: impl Into<String>,
+    os_name: impl Into<String>,
+    os_version: impl Into<String>,
+    model: Option<&str>,
+) -> Result<Vec<String>, PromptBuildError> {
     let cwd = cwd.into();
     let project_context = ProjectContext::discover_with_git(&cwd, current_date.into())?;
     let config = ConfigLoader::default_for(&cwd).load()?;
-    Ok(SystemPromptBuilder::new()
+    let mut builder = SystemPromptBuilder::new()
         .with_os(os_name, os_version)
         .with_project_context(project_context)
-        .with_runtime_config(config)
-        .build())
+        .with_runtime_config(config);
+    if let Some(m) = model {
+        builder = builder.with_model_identity(m);
+    }
+    Ok(builder.build())
 }
 
 fn render_config_section(config: &RuntimeConfig) -> String {

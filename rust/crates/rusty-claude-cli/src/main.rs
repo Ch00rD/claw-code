@@ -3707,7 +3707,11 @@ impl LiveCli {
         permission_mode: PermissionMode,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let system_prompt = build_system_prompt_for_model(Some(&model))?;
+<<<<<<< HEAD
         let session_state = new_cli_session()?;
+=======
+        let session_state = Session::new();
+>>>>>>> 5f71745 (feat: inject model identity into system prompt to prevent false Claude/Anthropic self-identification)
         let session = create_managed_session_handle(&session_state.session_id)?;
         let runtime = build_runtime(
             session_state.with_persistence_path(session.path.clone()),
