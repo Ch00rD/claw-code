@@ -1,7 +1,7 @@
 # Provider Compatibility Matrix
 
 Branch: `Ch00rD/claw-code:main`
-Last updated: 2026-04-11
+Last updated: 2026-04-20
 
 ## How to run
 
@@ -27,6 +27,7 @@ claw --model "ollama/qwen3-coder:480b-cloud"
 | xAI | grok-3 | <https://api.x.ai/v1> | Yes (XAI_API_KEY) | `claw --model grok-3` | 🔲 Untested | Auto-detected by model prefix |
 | DashScope | qwen-plus | <https://dashscope.aliyuncs.com/compatible-mode/v1> | Yes (DASHSCOPE_API_KEY) | `claw --model qwen-plus` | 🔲 Untested | Auto-detected by qwen- prefix |
 | Venice AI | venice-uncensored | <https://api.venice.ai/api/v1> | Yes (LLM_API_KEY) | `claw --provider generic --model venice-uncensored` | 🔲 Untested | |
+| OpenClaw gateway | gpt-5.4 (via OpenAI OAuth) | http://localhost:18789/v1 | Yes (OPENCLAW_GATEWAY_TOKEN) | `claw --provider openai --model gpt-5.4` | ✅ Works | Routes via OpenClaw gateway; sends x-openclaw-model header; OPENCLAW_GATEWAY_URL env var required |
 | Anthropic | claude-opus-4-6 | <https://api.anthropic.com> | Yes (ANTHROPIC_API_KEY or OAuth) | `claw` | 🔲 Untested (no API key) | Legacy path unchanged |
 
 ## Known issues
