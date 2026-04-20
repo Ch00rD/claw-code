@@ -210,6 +210,16 @@ pub fn metadata_for_model(model: &str) -> Option<ProviderMetadata> {
 
 #[must_use]
 pub fn detect_provider_kind(model: &str) -> ProviderKind {
+    // LLM_PROVIDER env var wins over everything — explicit user intent
+    if let Ok(p) = std::env::var("LLM_PROVIDER") {
+        return match p.to_lowercase().as_str() {
+            "anthropic" | "claw" => ProviderKind::Anthropic,
+            "openai"             => ProviderKind::OpenAi,
+            "xai" | "grok"       => ProviderKind::Xai,
+            "ollama"             => ProviderKind::Ollama,
+            _                    => ProviderKind::Generic,
+        };
+    }
     // Model-name prefix is the strongest signal — always wins for known families
     if model.starts_with("claude") { return ProviderKind::Anthropic; }
     if model.starts_with("grok")   { return ProviderKind::Xai; }
@@ -219,16 +229,6 @@ pub fn detect_provider_kind(model: &str) -> ProviderKind {
     // qwen/ and qwen- prefixes route to DashScope (OpenAI-compat)
     if model.starts_with("qwen/") || model.starts_with("qwen-") {
         return ProviderKind::OpenAi;
-    }
-    // For unknown model names, LLM_PROVIDER env var is the explicit override
-    if let Ok(p) = std::env::var("LLM_PROVIDER") {
-        return match p.to_lowercase().as_str() {
-            "anthropic" | "claw" => ProviderKind::Anthropic,
-            "openai"             => ProviderKind::OpenAi,
-            "xai" | "grok"       => ProviderKind::Xai,
-            "ollama"             => ProviderKind::Ollama,
-            _                    => ProviderKind::Generic,
-        };
     }
     // When OPENAI_BASE_URL is set, the user explicitly configured an
     // OpenAI-compatible endpoint. Prefer it over the Anthropic fallback

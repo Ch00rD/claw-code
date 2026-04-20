@@ -264,7 +264,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             output_format,
         } => run_export(&session_reference, output_path.as_deref(), output_format)?,
         CliAction::Repl {
-            model,
+            mut model,
             provider,
             allowed_tools,
             permission_mode,
@@ -272,7 +272,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             reasoning_effort,
             allow_broad_cwd,
         } => {
-            if let Some(p) = provider { std::env::set_var("LLM_PROVIDER", p); }
+            if let Some(p) = provider {
+                let mut m = model.clone();
+                m = resolve_model_for_provider(&p, &m);
+                model = m;
+                std::env::set_var("LLM_PROVIDER", p);
+            }
             run_repl(
             model,
             allowed_tools,
@@ -3111,6 +3116,46 @@ fn run_stale_base_preflight(flag_value: Option<&str>) {
     if let Some(warning) = format_stale_base_warning(&state) {
         eprintln!("{warning}");
     }
+}
+
+
+fn read_provider_default_model(provider: &str) -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let path = std::path::PathBuf::from(home).join(".claw.json");
+    let text = std::fs::read_to_string(&path).ok()?;
+    let val: serde_json::Value = serde_json::from_str(&text).ok()?;
+    val["providerDefaults"][provider]["defaultModel"]
+        .as_str()
+        .map(ToOwned::to_owned)
+}
+
+fn write_provider_default_model(provider: &str, model: &str) {
+    let home = match std::env::var("HOME") { Ok(h) => h, Err(_) => return };
+    let path = std::path::PathBuf::from(home).join(".claw.json");
+    let mut val: serde_json::Value = path.exists()
+        .then(|| std::fs::read_to_string(&path).ok())
+        .flatten()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    val["providerDefaults"][provider]["defaultModel"] = serde_json::Value::String(model.to_string());
+    if let Ok(text) = serde_json::to_string_pretty(&val) { let _ = std::fs::write(&path, text); }
+}
+
+fn resolve_model_for_provider(provider: &str, current_model: &str) -> String {
+    if current_model != DEFAULT_MODEL { return current_model.to_string(); }
+    if let Some(m) = read_provider_default_model(provider) {
+        if !m.is_empty() { eprintln!("Using default model for {provider}: {m}"); return m; }
+    }
+    eprintln!("No default model configured for provider '{provider}'.");
+    eprintln!("Set one in ~/.claw.json under providerDefaults.{provider}.defaultModel");
+    eprint!("Enter model name to use now: ");
+    use std::io::Write; std::io::stderr().flush().ok();
+    let mut input = String::new();
+    if std::io::stdin().read_line(&mut input).is_ok() {
+        let m = input.trim().to_string();
+        if !m.is_empty() { write_provider_default_model(provider, &m); return m; }
+    }
+    current_model.to_string()
 }
 
 #[allow(clippy::needless_pass_by_value)]

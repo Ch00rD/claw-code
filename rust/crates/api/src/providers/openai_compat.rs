@@ -305,14 +305,25 @@ impl OpenAiCompatClient {
         check_request_body_size(request, self.config())?;
 
         let request_url = chat_completions_endpoint(&self.base_url);
-        self.http
+        let openclaw_model = std::env::var("OPENCLAW_GATEWAY_URL").ok().map(|_| request.model.clone());
+        let owned;
+        let effective_request: &MessageRequest = if openclaw_model.is_some() {
+            let mut r = request.clone();
+            r.model = "openclaw/default".to_string();
+            owned = r;
+            &owned
+        } else {
+            request
+        };
+        let mut builder = self.http
             .post(&request_url)
             .header("content-type", "application/json")
             .bearer_auth(&self.api_key)
-            .json(&build_chat_completion_request(request, self.config()))
-            .send()
-            .await
-            .map_err(ApiError::from)
+            .json(&build_chat_completion_request(effective_request, self.config()));
+        if let Some(model) = openclaw_model {
+            builder = builder.header("x-openclaw-model", model);
+        }
+        builder.send().await.map_err(ApiError::from)
     }
 
     fn backoff_for_attempt(&self, attempt: u32) -> Result<Duration, ApiError> {
@@ -1356,6 +1367,15 @@ pub fn has_api_key(key: &str) -> bool {
 #[must_use]
 pub fn read_base_url(config: OpenAiCompatConfig) -> String {
     std::env::var(config.base_url_env)
+        .or_else(|_| {
+            // OPENCLAW_GATEWAY_URL: OpenClaw gateway as OpenAI-compat endpoint
+            if config.provider_name == "OpenAI" {
+                std::env::var("OPENCLAW_GATEWAY_URL")
+                    .map(|u| format!("{}/v1", u.trim_end_matches('/')))
+            } else {
+                Err(std::env::VarError::NotPresent)
+            }
+        })
         .or_else(|_| std::env::var("LLM_BASE_URL"))
         .unwrap_or_else(|_| config.default_base_url.to_string())
 }

@@ -22,6 +22,8 @@ pub struct ProviderCredentialConfig {
     pub api_key_env:     Option<&'static str>,
     /// Generic fallback always checked second.
     pub generic_key_env: &'static str,
+    /// OAuth token env var fallback (e.g. OPENAI_OAUTH).
+    pub oauth_env: Option<&'static str>,
     /// True when no credential is required (Ollama, local stacks).
     pub auth_optional:   bool,
 }
@@ -34,11 +36,13 @@ impl ProviderCredentialConfig {
                 provider_name:   "Anthropic",
                 api_key_env:     Some("ANTHROPIC_API_KEY"),
                 generic_key_env: "LLM_API_KEY",
+                oauth_env:       None,
                 auth_optional:   false,
             },
             ProviderKind::OpenAi => Self {
                 provider_name:   "OpenAI",
                 api_key_env:     Some("OPENAI_API_KEY"),
+                oauth_env:       Some("OPENAI_OAUTH"),
                 generic_key_env: "LLM_API_KEY",
                 auth_optional:   false,
             },
@@ -46,12 +50,14 @@ impl ProviderCredentialConfig {
                 provider_name:   "xAI",
                 api_key_env:     Some("XAI_API_KEY"),
                 generic_key_env: "LLM_API_KEY",
+                oauth_env:       None,
                 auth_optional:   false,
             },
             ProviderKind::Ollama | ProviderKind::Generic => Self {
                 provider_name:   "local",
                 api_key_env:     None,
                 generic_key_env: "LLM_API_KEY",
+                oauth_env:       None,
                 auth_optional:   true,
             },
         }
@@ -93,6 +99,15 @@ pub fn resolve_credential_from_env(
         return Ok((Credential::ApiKey(key), CredentialSource::EnvVar));
     }
 
+    // 3a2. OAuth env var fallback (e.g. OPENAI_OAUTH, OPENCLAW_TOKEN)
+    for oauth_var in [Some("OPENCLAW_GATEWAY_TOKEN"), config.oauth_env].iter().flatten() {
+        if let Ok(token) = std::env::var(oauth_var) {
+            if !token.is_empty() {
+                return Ok((Credential::BearerToken(token), CredentialSource::EnvVar));
+            }
+        }
+    }
+
     // 3b. Generic LLM_API_KEY
     if let Ok(key) = std::env::var("LLM_API_KEY") {
         if !key.is_empty() {
@@ -118,7 +133,7 @@ fn missing_credentials_error(config: &ProviderCredentialConfig) -> ApiError {
         ),
         Some("OPENAI_API_KEY") => ApiError::missing_credentials(
             config.provider_name,
-            &["OPENAI_API_KEY", "LLM_API_KEY"],
+            &["OPENAI_API_KEY", "OPENAI_OAUTH", "LLM_API_KEY"],
         ),
         Some("XAI_API_KEY") => ApiError::missing_credentials(
             config.provider_name,
